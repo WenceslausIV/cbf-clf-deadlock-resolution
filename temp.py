@@ -572,7 +572,7 @@ unicycle_position_controller = create_clf_unicycle_position_controller()
 
 # Create barrier certificates to avoid collision
 uni_barrier_cert = create_unicycle_barrier_certificate()
-x = np.array([0.0,0.3],[0.0,0.3])
+x = np.array([0.0,0.3],[0.0,0.3],[0.0,0.0])
 goal = np.array([1.0,0.3],[1.0,0.3])
 dxu = unicycle_position_controller(x, goal)
 dxu = uni_barrier_cert(dxu, x)
