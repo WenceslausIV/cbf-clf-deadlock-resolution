@@ -28,6 +28,12 @@ import numpy as np
 from scipy.special import comb
 from geometry_msgs.msg import TransformStamped, PoseStamped
 
+options['show_progress'] = False
+# Change default options of CVXOPT for faster solving
+options['reltol'] = 1e-2 # was e-2
+options['feastol'] = 1e-2 # was e-4
+options['maxiters'] = 50 # default is 100
+
 def create_si_to_uni_mapping(projection_distance=0.05, angular_velocity_limit=np.pi):
 	"""Creates two functions for mapping from single integrator dynamics to
     unicycle dynamics and unicycle states to single integrator states.
