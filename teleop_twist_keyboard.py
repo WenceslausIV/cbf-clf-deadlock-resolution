@@ -440,7 +440,7 @@ rate = rospy.Rate(1)
 # Create unicycle position controller
 unicycle_position_controller  = create_clf_unicycle_pose_controller()
 # Create barrier certificates to avoid collision
-uni_barrier_cert = create_unicycle_barrier_certificate()
+uni_barrier_cert = create_unicycle_barrier_certificate(safety_radius=0.15)
 
 
 x = np.array([[0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0]])
