@@ -566,16 +566,16 @@ rospy.init_node('teleop_twist_keyboard')
 publisher = rospy.Publisher('/cmd_vel', Twist, queue_size = 10)
 
 twist = Twist()
-rate = rospy.Rate(10)
+rate = rospy.Rate(1)
 
 # Create unicycle position controller
 unicycle_position_controller = create_clf_unicycle_position_controller()
 # Create barrier certificates to avoid collision
-uni_barrier_cert = create_unicycle_barrier_certificate(safety_radius = 0.3)
+uni_barrier_cert = create_unicycle_barrier_certificate()
 
 
-x = np.array([[0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0]])
-goal = np.array([[1.0,0.0,0.0,0.0],[1.0,0.0,0.0,0.0],[0.1,0.1,0.1,0.1]])
+x = np.array([[1.0,-1.0,1.0,0.0],[1.0,1.0,-1.0,1.0],[0.1,0.1,0.1,0.1]])
+goal = np.array([[1.0,0.0,1.0,0.0],[1.0,-1.0,-1.0,1.0]])
 
 def callback(data, args):
 
