@@ -444,6 +444,7 @@ uni_barrier_cert = create_unicycle_barrier_certificate(safety_radius=0.15)
 
 
 x = np.array([[0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0]])
+dxi = np.array([[0,0,0,0],[0,0,0,0]])
 goal = np.array([[-1.0,0.0,-1.0,1.0  ], [-1.0,1.0,1.0,-1.0], [0.1,0.1,0.1,0.1]])
 
 def callback(data, args):
