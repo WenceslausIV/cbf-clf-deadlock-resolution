@@ -471,6 +471,7 @@ def central():
         	twist.angular.y = 0
         	twist.angular.z = dxu[1][0]
 		publisher.publish(twist)
+		print(dxu)
 		rate.sleep()
 	rospy.spin()
 
