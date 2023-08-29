@@ -443,8 +443,8 @@ unicycle_position_controller  = create_clf_unicycle_pose_controller()
 uni_barrier_cert = create_unicycle_barrier_certificate()
 
 
-x = np.array([[1.0,-1.0,1.0,0.0],[1.0,1.0,-1.0,1.0],[0.1,0.1,0.1,0.1]])
-goal = np.array([[1.0,0.0,1.0,0.0],[1.0,-1.0,-1.0,1.0]])
+x = np.array([[1.0,0.0,-1.0,1.0],[1.0,1.0,1.0,-1.0],[0.0,0.0,0.0,0.0]])
+goal = np.array([[-1.0,0.0,-1.0,1.0  ], [-1.0,1.0,1.0,-1.0], [0.1,0.1,0.1,0.1]])
 
 def callback(data, args):
 
