@@ -26,7 +26,7 @@ from cvxopt import matrix, sparse
 import itertools
 import numpy as np
 from scipy.special import comb
-
+from geometry_msgs.msg import TransformStamped, PoseStamped
 
 def create_si_to_uni_dynamics(linear_velocity_gain=1, angular_velocity_limit=np.pi):
 	""" Returns a function mapping from single-integrator to unicycle dynamics with angular velocity magnitude restrictions.
@@ -588,20 +588,21 @@ def callback(data, args):
 
 def central():
 
-	sub.append(rospy.Subscriber('/vrpn_client_node/Hus111'  + '/pose', PoseStamped, callback, 0 ))
-	sub.append(rospy.Subscriber('/vrpn_client_node/Hus222'  + '/pose', PoseStamped, callback, 1 ))
-	sub.append(rospy.Subscriber('/vrpn_client_node/Hus333'  + '/pose', PoseStamped, callback, 2 ))
-	sub.append(rospy.Subscriber('/vrpn_client_node/Hus444'  + '/pose', PoseStamped, callback, 3 ))
-	dxu = unicycle_position_controller(x, goal)
-        dxu = uni_barrier_cert(dxu, x)
-	twist.linear.x = dxu[0][0]
-        twist.linear.y = 0.0
-        twist.linear.z = 0.0
-        twist.angular.x = 0
-        twist.angular.y = 0
-        twist.angular.z = dxu[1][0]
-	publisher.publish(twist)
-	rate.sleep()
+	while not rospy.is_shutdown():
+	        rospy.Subscriber('/vrpn_client_node/Hus111'  + '/pose', PoseStamped, callback, 0 ) 
+        	rospy.Subscriber('/vrpn_client_node/Hus222'  + '/pose', PoseStamped, callback, 1 ) 
+        	rospy.Subscriber('/vrpn_client_node/Hus333'  + '/pose', PoseStamped, callback, 2 ) 
+	        rospy.Subscriber('/vrpn_client_node/Hus444'  + '/pose', PoseStamped, callback, 3 ) 
+		dxu = unicycle_position_controller(x, goal)
+       		dxu = uni_barrier_cert(dxu, x)
+		twist.linear.x = dxu[0][0]
+        	twist.linear.y = 0.0
+        	twist.linear.z = 0.0
+        	twist.angular.x = 0
+        	twist.angular.y = 0
+        	twist.angular.z = dxu[1][0]
+		publisher.publish(twist)
+		rate.sleep()
 	rospy.spin()
 
 
