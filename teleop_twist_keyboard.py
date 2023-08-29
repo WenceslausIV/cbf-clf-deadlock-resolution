@@ -386,74 +386,6 @@ def create_si_position_controller(x_velocity_gain=1, y_velocity_gain=1, velocity
 
 	return si_position_controller
 
-
-def create_clf_unicycle_position_controller(linear_velocity_gain=0.8, angular_velocity_gain=3):
-	"""Creates a unicycle model pose controller.  Drives the unicycle model to a given position
-    and orientation. (($u: \mathbf{R}^{3 \times N} \times \mathbf{R}^{2 \times N} \to \mathbf{R}^{2 \times N}$)
-
-    linear_velocity_gain - the gain impacting the produced unicycle linear velocity
-    angular_velocity_gain - the gain impacting the produced unicycle angular velocity
-
-    -> function
-    """
-
-	# Check user input types
-	assert isinstance(linear_velocity_gain, (int,
-											 float)), "In the function create_clf_unicycle_position_controller, the linear velocity gain (linear_velocity_gain) must be an integer or float. Recieved type %r." % type(
-		linear_velocity_gain).__name__
-	assert isinstance(angular_velocity_gain, (int,
-											  float)), "In the function create_clf_unicycle_position_controller, the angular velocity gain (angular_velocity_gain) must be an integer or float. Recieved type %r." % type(
-		angular_velocity_gain).__name__
-
-	# Check user input ranges/sizes
-	assert linear_velocity_gain >= 0, "In the function create_clf_unicycle_position_controller, the linear velocity gain (linear_velocity_gain) must be greater than or equal to zero. Recieved %r." % linear_velocity_gain
-	assert angular_velocity_gain >= 0, "In the function create_clf_unicycle_position_controller, the angular velocity gain (angular_velocity_gain) must be greater than or equal to zero. Recieved %r." % angular_velocity_gain
-
-	def position_uni_clf_controller(states, positions):
-		"""  A position controller for unicycle models.  This utilized a control lyapunov function
-        (CLF) to drive a unicycle system to a desired position. This function operates on unicycle
-        states and desired positions to return a unicycle velocity command vector.
-
-        states: 3xN numpy array (of unicycle states, [x;y;theta])
-        poses: 3xN numpy array (of desired positons, [x_goal;y_goal])
-
-        -> 2xN numpy array (of unicycle control inputs)
-        """
-
-		# Check user input types
-		assert isinstance(states,
-						  np.ndarray), "In the function created by the create_clf_unicycle_position_controller function, the single-integrator robot states (xi) must be a numpy array. Recieved type %r." % type(
-			states).__name__
-		assert isinstance(positions,
-						  np.ndarray), "In the function created by the create_clf_unicycle_position_controller function, the robot goal points (positions) must be a numpy array. Recieved type %r." % type(
-			positions).__name__
-
-		# Check user input ranges/sizes
-		assert states.shape[
-				   0] == 3, "In the function created by the create_clf_unicycle_position_controller function, the dimension of the unicycle robot states (states) must be 3 ([x;y;theta]). Recieved dimension %r." % \
-							states.shape[0]
-		assert positions.shape[
-				   0] == 2, "In the function created by the create_clf_unicycle_position_controller function, the dimension of the robot goal positions (positions) must be 2 ([x_goal;y_goal]). Recieved dimension %r." % \
-							positions.shape[0]
-		assert states.shape[1] == positions.shape[
-			1], "In the function created by the create_clf_unicycle_position_controller function, the number of unicycle robot states (states) must be equal to the number of robot goal positions (positions). Recieved a current robot pose input array (states) of size %r states %r and desired position array (positions) of size %r states %r." % (
-		states.shape[0], states.shape[1], positions.shape[0], positions.shape[1])
-
-		_, N = np.shape(states)
-		dxu = np.zeros((2, N))
-
-		pos_error = positions - states[:2][:]
-		rot_error = np.arctan2(pos_error[1][:], pos_error[0][:])
-		dist = np.linalg.norm(pos_error, axis=0)
-
-		dxu[0][:] = linear_velocity_gain * dist * np.cos(rot_error - states[2][:])
-		dxu[1][:] = angular_velocity_gain * dist * np.sin(rot_error - states[2][:])
-
-		return dxu
-
-	return position_uni_clf_controller
-
-
 def create_clf_unicycle_pose_controller(approach_angle_gain=1, desired_angle_gain=2.7, rotation_error_gain=1):
 	"""Returns a controller ($u: \mathbf{R}^{3 \times N} \times \mathbf{R}^{3 \times N} \to \mathbf{R}^{2 \times N}$)
     that will drive a unicycle-modeled agent to a pose (i.e., position & orientation). This control is based on a control
@@ -506,7 +438,7 @@ twist = Twist()
 rate = rospy.Rate(1)
 
 # Create unicycle position controller
-unicycle_position_controller = create_clf_unicycle_position_controller()
+unicycle_position_controller  = create_clf_unicycle_pose_controller()
 # Create barrier certificates to avoid collision
 uni_barrier_cert = create_unicycle_barrier_certificate()
 
