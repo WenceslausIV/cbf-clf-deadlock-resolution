@@ -490,17 +490,6 @@ def callback(data, args):
         	publisher.publish(twist)
         	print("u is",dxu)
         	print("u[0]",dxu[0,0],dxu[1,0])
-        	#dxu = uni_barrier_cert(dxu, x)
-                #dxu=np.array([[0],[0.5]])
-        	twist.linear.x = dxu[0,0]/5.
-        	twist.linear.y = 0.0
-        	twist.linear.z = 0.0
-        	twist.angular.x = 0
-        	twist.angular.y = 0
-        	twist.angular.z = dxu[1,0]/5.
-        	publisher.publish(twist)
-        	print("u is",dxu)
-        	print("u[0]",dxu[0,0],dxu[1,0])
         	#rate.sleep()
 	
 
