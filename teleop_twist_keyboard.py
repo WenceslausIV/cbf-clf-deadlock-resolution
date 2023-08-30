@@ -473,11 +473,6 @@ def callback(data, args):
 	if(i == 0):
 	        print("x is",x)
         	print("x goal is",goal)
-
-       		dxu = unicycle_position_controller(x, goal)
-        	print("x is",x)
-	        print("x goal is",goal)
-
         	dxu = unicycle_position_controller(x, goal)
                 #dxu = uni_barrier_cert(dxu, x)
                 #dxu=np.array([[0],[0.5]])
