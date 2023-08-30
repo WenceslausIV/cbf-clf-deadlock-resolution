@@ -1,3 +1,6 @@
+
+
+
 #!/usr/bin/env python
 
 from __future__ import print_function
@@ -231,6 +234,7 @@ def create_single_integrator_barrier_certificate(barrier_gain=100, safety_radius
 							dxi.shape[0]
 		assert x.shape[1] == dxi.shape[
 			1], "In the function created by the create_single_integrator_barrier_certificate function, the number of robot states (x) must be equal to the number of robot single integrator velocity commands (dxi). Recieved a current robot pose input array (x) of size %r x %r and single integrator velocity array (dxi) of size %r x %r." % (
+
 		x.shape[0], x.shape[1], dxi.shape[0], dxi.shape[1])
 
 		# Initialize some variables for computational savings
@@ -241,7 +245,7 @@ def create_single_integrator_barrier_certificate(barrier_gain=100, safety_radius
 		H = sparse(matrix(2 * np.identity(2 * N)))
 
 		count = 0
-		for i in range(1,2):
+		for i in range(N-1):
 			for j in range(i + 1, N):
 				error = x[:, i] - x[:, j]
 				h = (error[0] * error[0] + error[1] * error[1]) - np.power(safety_radius, 2)
@@ -298,6 +302,7 @@ def create_unicycle_barrier_certificate(barrier_gain=100, safety_radius=0.12, pr
 
     def f(dxu, x):
         #Check user input types
+
         assert isinstance(dxu, np.ndarray), "In the function created by the create_unicycle_barrier_certificate function, the unicycle robot velocity command (dxu) must be a numpy array. Recieved type %r." % type(dxu).__name__
         assert isinstance(x, np.ndarray), "In the function created by the create_unicycle_barrier_certificate function, the robot states (x) must be a numpy array. Recieved type %r." % type(x).__name__
 
@@ -320,6 +325,7 @@ def create_unicycle_barrier_certificate(barrier_gain=100, safety_radius=0.12, pr
 
 def create_si_position_controller(x_velocity_gain=1, y_velocity_gain=1, velocity_magnitude_limit=0.15):
 	"""Creates a position controller for single integrators.  Drives a single integrator to a point
+twist.angular.z = dxu[1][0]
     using a propoertional controller.
 
     x_velocity_gain - the gain impacting the x (horizontal) velocity of the single integrator
@@ -364,6 +370,7 @@ def create_si_position_controller(x_velocity_gain=1, y_velocity_gain=1, velocity
 						  np.ndarray), "In the si_position_controller function created by the create_si_position_controller function, the robot goal points (positions) must be a numpy array. Recieved type %r." % type(
 			positions).__name__
 
+
 		# Check user input ranges/sizes
 		assert xi.shape[
 				   0] == 2, "In the si_position_controller function created by the create_si_position_controller function, the dimension of the single-integrator robot states (xi) must be 2 ([x;y]). Recieved dimension %r." % \
@@ -392,7 +399,8 @@ def create_si_position_controller(x_velocity_gain=1, y_velocity_gain=1, velocity
 
 	return si_position_controller
 
-def create_clf_unicycle_pose_controller(approach_angle_gain=1, desired_angle_gain=2.7, rotation_error_gain=1):
+
+def create_clf_unicycle_pose_controller(approach_angle_gain=1, desired_angle_gain=2.7, rotation_error_gain=0.3):
 	"""Returns a controller ($u: \mathbf{R}^{3 \times N} \times \mathbf{R}^{3 \times N} \to \mathbf{R}^{2 \times N}$)
     that will drive a unicycle-modeled agent to a pose (i.e., position & orientation). This control is based on a control
     Lyapunov function.
@@ -438,8 +446,8 @@ def create_clf_unicycle_pose_controller(approach_angle_gain=1, desired_angle_gai
 	return pose_uni_clf_controller
 
 rospy.init_node('teleop_twist_keyboard')
-publisher = rospy.Publisher('/cmd_vel', Twist, queue_size = 10)
-
+publisher = rospy.Publisher('/cmd_vel', Twist, queue_size = 1)
+rospy.sleep(2)
 twist = Twist()
 rate = rospy.Rate(1)
 
@@ -448,43 +456,68 @@ unicycle_position_controller  = create_clf_unicycle_pose_controller()
 # Create barrier certificates to avoid collision
 uni_barrier_cert = create_unicycle_barrier_certificate(safety_radius=0.15)
 
+
 N = 4
-x = np.array([[0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0]])
+x = np.array([[0.0,0.5,-0.5,1.0],[0.0,-0.5,0.5,-1.0],[0.2,0.2,0.2,0.2]])
 dxi = np.array([[0,0,0,0],[0,0,0,0]])
-goal = np.array([[-1.0,0.0,-1.0,1.0  ], [-1.0,1.0,1.0,-1.0], [0.1,0.1,0.1,0.1]])
+goal = np.array([[0.0,0.0,-1.0,1.0  ], [0.0,1.0,1.0,-1.0], [0.1,0.1,0.1,0.1]])
 
 def callback(data, args):
 
 	i = args
 
 	theta = tf_conversions.transformations.euler_from_quaternion([data.pose.orientation.x, data.pose.orientation.y, data.pose.orientation.z, data.pose.orientation.w])[2]
-	x[0][i] = data.pose.position.x
-	x[1][i] = data.pose.position.y
-	x[2][i] = theta
+	x[0,i] = data.pose.position.x
+	x[1,i] = data.pose.position.y
+	x[2,i] = theta
+	if(i == 0):
+	        print("x is",x)
+        	print("x goal is",goal)
 
-def central():
+       		dxu = unicycle_position_controller(x, goal)
+        	print("x is",x)
+	        print("x goal is",goal)
 
-	while not rospy.is_shutdown():
-	        rospy.Subscriber('/vrpn_client_node/Hus111'  + '/pose', PoseStamped, callback, 0 ) 
-        	rospy.Subscriber('/vrpn_client_node/Hus222'  + '/pose', PoseStamped, callback, 1 ) 
-        	rospy.Subscriber('/vrpn_client_node/Hus333'  + '/pose', PoseStamped, callback, 2 ) 
-	        rospy.Subscriber('/vrpn_client_node/Hus444'  + '/pose', PoseStamped, callback, 3 ) 
-		dxu = unicycle_position_controller(x, goal)
-       		dxu = uni_barrier_cert(dxu, x)
-		twist.linear.x = dxu[0][0]
+        	dxu = unicycle_position_controller(x, goal)
+                #dxu = uni_barrier_cert(dxu, x)
+                #dxu=np.array([[0],[0.5]])
+        	twist.linear.x = dxu[0,0]/35.
         	twist.linear.y = 0.0
         	twist.linear.z = 0.0
         	twist.angular.x = 0
         	twist.angular.y = 0
-        	twist.angular.z = dxu[1][0]
-		publisher.publish(twist)
-		print(dxu)
-		rate.sleep()
+        	twist.angular.z = dxu[1,0]/35.
+        	publisher.publish(twist)
+        	print("u is",dxu)
+        	print("u[0]",dxu[0,0],dxu[1,0])
+        	#dxu = uni_barrier_cert(dxu, x)
+                #dxu=np.array([[0],[0.5]])
+        	twist.linear.x = dxu[0,0]/5.
+        	twist.linear.y = 0.0
+        	twist.linear.z = 0.0
+        	twist.angular.x = 0
+        	twist.angular.y = 0
+        	twist.angular.z = dxu[1,0]/5.
+        	publisher.publish(twist)
+        	print("u is",dxu)
+        	print("u[0]",dxu[0,0],dxu[1,0])
+        	#rate.sleep()
+	
+
+def central():
+
+	
+	rospy.Subscriber('/vrpn_client_node/Hus111'  + '/pose', PoseStamped, callback, 0 ) 
+        rospy.Subscriber('/vrpn_client_node/Hus222'  + '/pose', PoseStamped, callback, 1 ) 
+        rospy.Subscriber('/vrpn_client_node/Hus333'  + '/pose', PoseStamped, callback, 2 ) 
+	rospy.Subscriber('/vrpn_client_node/Hus444'  + '/pose', PoseStamped, callback, 3 ) 
+	#rate.sleep()
 	rospy.spin()
 
 
 if __name__ == '__main__':
+
 	try:
 		central()
-	except rospy.ROSInterruptException:
+        except rospy.ROSInterruptException:
 		print(rospy.ROSInterruptException)
