@@ -185,7 +185,7 @@ def create_uni_to_si_dynamics(projection_distance=0.05):
 
 
 
-def create_single_integrator_barrier_certificate(barrier_gain=100, safety_radius=0.17, magnitude_limit=0.2):
+def create_single_integrator_barrier_certificate(barrier_gain=100, safety_radius=0.17, magnitude_limit=1):
 	"""Creates a barrier certificate for a single-integrator system.  This function
     returns another function for optimization reasons.
 
@@ -265,7 +265,7 @@ def create_single_integrator_barrier_certificate(barrier_gain=100, safety_radius
 
 	return f
 
-def create_unicycle_barrier_certificate(barrier_gain=100, safety_radius=0.12, projection_distance=0.05, magnitude_limit=0.2):
+def create_unicycle_barrier_certificate(barrier_gain=100, safety_radius=0.12, projection_distance=0.05, magnitude_limit=1):
     """ Creates a unicycle barrier cetifcate to avoid collisions. Uses the diffeomorphism mapping
     and single integrator implementation. For optimization purposes, this function returns
     another function.
@@ -446,12 +446,12 @@ rospy.init_node('teleop_twist_keyboard')
 publisher = rospy.Publisher('/cmd_vel', Twist, queue_size = 1)
 rospy.sleep(2)
 twist = Twist()
-rate = rospy.Rate(1)
+#rate = rospy.Rate(1)
 
 # Create unicycle position controller
 unicycle_position_controller  = create_clf_unicycle_pose_controller()
 # Create barrier certificates to avoid collision
-uni_barrier_cert = create_unicycle_barrier_certificate(safety_radius=0.15)
+uni_barrier_cert = create_unicycle_barrier_certificate(safety_radius=0.3)
 
 
 N = 4
@@ -467,23 +467,18 @@ def callback(data, args):
 	x[0,i] = data.pose.position.x
 	x[1,i] = data.pose.position.y
 	x[2,i] = theta
-	if(i == 0):
-	        print("x is",x)
-        	print("x goal is",goal)
+
+def control_callback(event):
+		print("x is",x)
         	dxu = unicycle_position_controller(x, goal)
-                #dxu = uni_barrier_cert(dxu, x)
-                #dxu=np.array([[0],[0.5]])
-        	twist.linear.x = dxu[0,0]/35.
+                dxu = uni_barrier_cert(dxu, x)
+        	twist.linear.x = dxu[0,0]/5.
         	twist.linear.y = 0.0
         	twist.linear.z = 0.0
         	twist.angular.x = 0
         	twist.angular.y = 0
-        	twist.angular.z = dxu[1,0]/35.
+        	twist.angular.z = dxu[1,0]/5.
         	publisher.publish(twist)
-        	print("u is",dxu)
-        	print("u[0]",dxu[0,0],dxu[1,0])
-        	#rate.sleep()
-	
 
 def central():
 
@@ -492,7 +487,9 @@ def central():
         rospy.Subscriber('/vrpn_client_node/Hus222'  + '/pose', PoseStamped, callback, 1 ) 
         rospy.Subscriber('/vrpn_client_node/Hus333'  + '/pose', PoseStamped, callback, 2 ) 
 	rospy.Subscriber('/vrpn_client_node/Hus444'  + '/pose', PoseStamped, callback, 3 ) 
-	#rate.sleep()
+
+	
+	timer = rospy.Timer(rospy.Duration(0.1), control_callback)
 	rospy.spin()
 
 
