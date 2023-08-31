@@ -469,16 +469,16 @@ def callback(data, args):
 	x[2,i] = theta
 
 def control_callback(event):
-		print("x is",x)
-        	dxu = unicycle_position_controller(x, goal)
-                dxu = uni_barrier_cert(dxu, x)
-        	twist.linear.x = dxu[0,0]/5.
-        	twist.linear.y = 0.0
-        	twist.linear.z = 0.0
-        	twist.angular.x = 0
-        	twist.angular.y = 0
-        	twist.angular.z = dxu[1,0]/5.
-        	publisher.publish(twist)
+	print("x is",x)
+        dxu = unicycle_position_controller(x, goal)
+        dxu = uni_barrier_cert(dxu, x)
+        twist.linear.x = dxu[0,0]/5.
+        twist.linear.y = 0.0
+        twist.linear.z = 0.0
+        twist.angular.x = 0
+        twist.angular.y = 0
+        twist.angular.z = dxu[1,0]/5.
+        publisher.publish(twist)
 
 def central():
 
