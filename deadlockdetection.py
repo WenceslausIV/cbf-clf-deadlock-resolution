@@ -523,12 +523,12 @@ def control_callback(event):
 	dxu = np.zeros((2, N))
 	dxu[0, p] = du[0, 0]
 	dxu[1, p] = du[1, 0]
-	twist.linear.x = dxu[0,0]/5.
+	twist.linear.x = dxu[0,p]/5.
 	twist.linear.y = 0.0
 	twist.linear.z = 0.0
 	twist.angular.x = 0
 	twist.angular.y = 0
-	twist.angular.z = dxu[1,0]/5.
+	twist.angular.z = dxu[1,p]/5.
 	publisher.publish(twist)
 
 def central():
