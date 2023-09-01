@@ -508,11 +508,11 @@ def callback(data, args):
 
 def control_callback(event):
 	#p for your controlling robot's index
-    p = 0
+	p = 0
 	print("x is",x)
 	x_si = uni_to_si_states(x)
 	dxi = single_integrator_position_controller(x_si, uni_goals[:2][:])
-    xx = np.reshape(x[:, p], (3, 1))
+	xx = np.reshape(x[:, p], (3, 1))
 	xi = np.reshape(x_si[:, p], (2, 1))
 	mask = np.arange(x_si.shape[1]) != p
 	xo = x_si[:, mask]  # for obstacles
@@ -523,20 +523,20 @@ def control_callback(event):
 	dxu = np.zeros((2, N))
 	dxu[0, p] = du[0, 0]
 	dxu[1, p] = du[1, 0]
-    twist.linear.x = dxu[0,0]/5.
-    twist.linear.y = 0.0
-    twist.linear.z = 0.0
-    twist.angular.x = 0
-    twist.angular.y = 0
-    twist.angular.z = dxu[1,0]/5.
-    publisher.publish(twist)
+	twist.linear.x = dxu[0,0]/5.
+	twist.linear.y = 0.0
+	twist.linear.z = 0.0
+	twist.angular.x = 0
+	twist.angular.y = 0
+	twist.angular.z = dxu[1,0]/5.
+	publisher.publish(twist)
 
 def central():
 
 	
 	rospy.Subscriber('/vrpn_client_node/Hus111'  + '/pose', PoseStamped, callback, 0 ) 
-    rospy.Subscriber('/vrpn_client_node/Hus222'  + '/pose', PoseStamped, callback, 1 ) 
-    rospy.Subscriber('/vrpn_client_node/Hus333'  + '/pose', PoseStamped, callback, 2 ) 
+	rospy.Subscriber('/vrpn_client_node/Hus222'  + '/pose', PoseStamped, callback, 1 ) 
+	rospy.Subscriber('/vrpn_client_node/Hus333'  + '/pose', PoseStamped, callback, 2 ) 
 	rospy.Subscriber('/vrpn_client_node/Hus444'  + '/pose', PoseStamped, callback, 3 ) 
 
 	
@@ -547,6 +547,6 @@ def central():
 if __name__ == '__main__':
 
     try:
-		central()
+	central()
     except rospy.ROSInterruptException:
-		print(rospy.ROSInterruptException)
+	print(rospy.ROSInterruptException)
