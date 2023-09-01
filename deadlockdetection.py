@@ -507,6 +507,7 @@ def callback(data, args):
 	x[2,i] = theta
 
 def control_callback(event):
+	N = 4
 	#p for your controlling robot's index
 	p = 0
 	print("x is",x)
