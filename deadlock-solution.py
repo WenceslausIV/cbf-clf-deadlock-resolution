@@ -657,9 +657,9 @@ def control_callback(event):
 			if (d < .075):
 				ready[i] = 1
 
-		dxu = unicycle_position_controller(x, initial_conditions)
+	dxu = unicycle_position_controller(x, initial_conditions)
         dxu = uni_barrier_cert(dxu, x)
-	    twist.linear.x = dxu[0,p]/5.
+	twist.linear.x = dxu[0,p]/5.
     	twist.linear.y = 0.0
        	twist.linear.z = 0.0
     	twist.angular.x = 0
