@@ -546,7 +546,7 @@ def central():
 
 if __name__ == '__main__':
 
-    try:
-        central()
-    except rospy.ROSInterruptException:
-        print(rospy.ROSInterruptException)
+	try:
+		central()
+	except rospy.ROSInterruptException:
+		print(rospy.ROSInterruptException)
