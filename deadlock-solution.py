@@ -19,6 +19,9 @@ from cvxopt import matrix
 from cvxopt.blas import dot
 from cvxopt.solvers import qp, options
 from cvxopt import matrix, sparse
+from scipy import sparse as sparsed# this one is for osqp
+import qpsolvers
+from qpsolvers import solve_qp
 
 # Unused for now, will include later for speed.
 # import quadprog as solver2
@@ -531,6 +534,79 @@ def create_clf_unicycle_pose_controller(approach_angle_gain=1, desired_angle_gai
 		return dxu
 
 	return pose_uni_clf_controller
+
+def de_create_single_integrator_CLF_CBF_CBF2(barrier_gain=10, safety_radius=0.17, magnitude_limit=0.2):
+    """Creates a barrier certificate for a single-integrator system.  This function
+    returns another function for optimization reasons.
+
+    barrier_gain: double (controls how quickly agents can approach each other.  lower = slower)
+    safety_radius: double (how far apart the agents will stay)
+    magnitude_limit: how fast the robot can move linearly.
+
+    -> function (the barrier certificate function)
+    """
+    epi = 0.1
+    lambda1 = 1
+    lambda2 = 1
+    MM_clf = np.array([[lambda1, 0], [0, lambda2]])
+
+    def f(x, xo, xgoal, omega):
+        # Initialize some variables for computational savings
+        num_obstacles = xo.shape[1]
+        num_constraints = num_obstacles * 2 + 1
+        A = np.zeros((num_constraints, 4))
+        b = np.zeros(num_constraints)
+        Q0 = np.array([[math.cos(omega), -math.sin(omega)], [math.sin(omega), math.cos(omega)]])
+        OX = np.array([[-x[1, 0]], [x[0, 0]]])
+        deltaV = 2 * Q0.T @ MM_clf @ (Q0 @ x - xgoal)
+        deltaQV = OX.T @ deltaV
+        A[0, 0:2] = deltaV.T  # for u
+        A[0, 2] = -1  # for delta
+        A[0, 3] = deltaQV[0].T  # for omega
+        b[0] = -(Q0 @ x - xgoal).T @ MM_clf @ (Q0 @ x - xgoal)
+        # H = sparse(matrix(2 * np.identity(3)))
+
+        for i in range(1, num_obstacles+1):
+            error = x[:, 0] - xo[:, i-1]
+            h_x = (error[0] * error[0] + error[1] * error[1]) - np.power(safety_radius, 2)
+            if h_x <= 0:
+                print(h_x)
+            A[i, 0:2] = -error.T
+            b[i] = 0.5 * barrier_gain * h_x
+
+            ## CBF2
+            sigma_x = math.exp(-(h_x ** 2))
+            deltaH = 2 * np.array([[error[0]], [error[1]]])
+            PdeltaH = np.linalg.norm(deltaH) * np.eye(2) - deltaH @ deltaH.T
+
+            PdeltaV = np.linalg.norm(deltaV) * np.eye(2) - deltaV @ deltaV.T
+
+            HV = 2 * Q0.T @ Q0
+            Hh = 2 * np.array([[1, 0], [0, 1]])
+            deltaD = HV @ PdeltaH @ deltaV + Hh @ PdeltaV @ deltaH
+            DD = 0.5 * deltaV.T @ PdeltaH @ deltaV
+            deltaHD = sigma_x * deltaD - 2 * h_x * sigma_x * (DD - epi) * deltaH
+            deltaQD = (HV @ OX - np.array([[-deltaV[1, 0]], [deltaV[0, 0]]])).T @ PdeltaH @ deltaV
+            delta_QHD = sigma_x * deltaQD
+            HD = sigma_x * (DD - epi)
+            A[i + num_obstacles, 0:2] = -deltaHD.T
+            A[i + num_obstacles, 3] = -delta_QHD.T
+            b[i + num_obstacles] = HD
+
+
+        # norms = np.linalg.norm(dxi, 2, 0)
+        # idxs_to_normalize = (norms > magnitude_limit)
+        # dxi[:, idxs_to_normalize] *= magnitude_limit / norms[idxs_to_normalize]
+
+        f = np.zeros((4, 1))
+        H = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+        H = sparsed.csc_matrix(H)
+        A = sparsed.csc_matrix(A)
+        result = solve_qp(H, f, A, b, lb=np.array([-1., -1., -1000., -math.pi/2]), ub=np.array([1., 1., 1000., math.pi/2]), solver='osqp')
+
+        return result
+
+    return f
 
 rospy.init_node('teleop_twist_keyboard')
 publisher = rospy.Publisher('/cmd_vel', Twist, queue_size = 1)
