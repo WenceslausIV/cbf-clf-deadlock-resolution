@@ -549,7 +549,8 @@ si_to_uni_dyn = create_si_to_uni_dynamics()
 N = 4
 x = np.array([[0.0,0.5,-0.5,1.0],[0.0,-0.5,0.5,-1.0],[0.2,0.2,0.2,0.2]])
 dxi = np.array([[0,0,0,0],[0,0,0,0]])
-uni_goals = np.array([[0.0,0.0,-1.0,1.0  ], [0.0,1.0,1.0,-1.0], [0.1,0.1,0.1,0.1]])
+initial_conditions = np.array([[0., 0., -1., 1.], [1., -1., 0., 0.], [-math.pi / 2, math.pi / 2, 0., math.pi]])
+uni_goals = np.array([[0., 0., 1., -1.], [-1., 1., 0., 0.], [math.pi / 2, -math.pi / 2, math.pi, 0.]])
 
 def callback(data, args):
 
