@@ -510,27 +510,43 @@ def control_callback(event):
 	N = 4
 	#p for your controlling robot's index
 	p = 0
-	print("x is",x)
-	x_si = uni_to_si_states(x)
-	dxi = single_integrator_position_controller(x_si, uni_goals[:2][:])
-	xx = np.reshape(x[:, p], (3, 1))
-	xi = np.reshape(x_si[:, p], (2, 1))
-	mask = np.arange(x_si.shape[1]) != p
-	xo = x_si[:, mask]  # for obstacles
-	dx = dxi[:, p]
-	dx = si_barrier_cert(dx, xi, xo)
-
-	du = si_to_uni_dyn(dx, xx)
-	dxu = np.zeros((2, N))
-	dxu[0, p] = du[0, 0]
-	dxu[1, p] = du[1, 0]
-	twist.linear.x = dxu[0,p]/5.
-	twist.linear.y = 0.0
-	twist.linear.z = 0.0
-	twist.angular.x = 0
-	twist.angular.y = 0
-	twist.angular.z = dxu[1,p]/5.
-	publisher.publish(twist)
+	if ready.all != 1:
+		for i in range(N):
+			d = np.sqrt((initial_conditions[0][i] - x[0][i]) ** 2 + (initial_conditions[1][i] - x[1][i]) ** 2)
+			if (d < .075):
+				ready[i] = 1
+		dxu = unicycle_position_controller(x, initial_conditions)
+	        dxu = uni_barrier_cert(dxu, x)
+		twist.linear.x = dxu[0,p]/5.
+	    	twist.linear.y = 0.0
+	       	twist.linear.z = 0.0
+	    	twist.angular.x = 0
+	        twist.angular.y = 0
+	        twist.angular.z = dxu[1,p]/5.
+	        publisher.publish(twist)
+		
+	if ready.all == 1:
+		print("x is",x)
+		x_si = uni_to_si_states(x)
+		dxi = single_integrator_position_controller(x_si, uni_goals[:2][:])
+		xx = np.reshape(x[:, p], (3, 1))
+		xi = np.reshape(x_si[:, p], (2, 1))
+		mask = np.arange(x_si.shape[1]) != p
+		xo = x_si[:, mask]  # for obstacles
+		dx = dxi[:, p]
+		dx = si_barrier_cert(dx, xi, xo)
+	
+		du = si_to_uni_dyn(dx, xx)
+		dxu = np.zeros((2, N))
+		dxu[0, p] = du[0, 0]
+		dxu[1, p] = du[1, 0]
+		twist.linear.x = dxu[0,p]/5.
+		twist.linear.y = 0.0
+		twist.linear.z = 0.0
+		twist.angular.x = 0
+		twist.angular.y = 0
+		twist.angular.z = dxu[1,p]/5.
+		publisher.publish(twist)
 
 def central():
 
