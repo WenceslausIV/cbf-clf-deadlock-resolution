@@ -34,6 +34,55 @@ options['reltol'] = 1e-2 # was e-2
 options['feastol'] = 1e-2 # was e-4
 options['maxiters'] = 50 # default is 100
 
+def create_si_to_uni_dynamics(linear_velocity_gain=1, angular_velocity_limit=np.pi):
+    """ Returns a function mapping from single-integrator to unicycle dynamics with angular velocity magnitude restrictions.
+
+        linear_velocity_gain: Gain for unicycle linear velocity
+        angular_velocity_limit: Limit for angular velocity (i.e., |w| < angular_velocity_limit)
+
+        -> function
+    """
+
+    #Check user input types
+    assert isinstance(linear_velocity_gain, (int, float)), "In the function create_si_to_uni_dynamics, the linear velocity gain (linear_velocity_gain) must be an integer or float. Recieved type %r." % type(linear_velocity_gain).__name__
+    assert isinstance(angular_velocity_limit, (int, float)), "In the function create_si_to_uni_dynamics, the angular velocity limit (angular_velocity_limit) must be an integer or float. Recieved type %r." % type(angular_velocity_limit).__name__
+
+    #Check user input ranges/sizes
+    assert linear_velocity_gain > 0, "In the function create_si_to_uni_dynamics, the linear velocity gain (linear_velocity_gain) must be positive. Recieved %r." % linear_velocity_gain
+    assert angular_velocity_limit >= 0, "In the function create_si_to_uni_dynamics, the angular velocity limit (angular_velocity_limit) must not be negative. Recieved %r." % angular_velocity_limit
+    
+
+    def si_to_uni_dyn(dxi, poses):
+        """A mapping from single-integrator to unicycle dynamics.
+
+        dxi: 2xN numpy array with single-integrator control inputs
+        poses: 2xN numpy array with single-integrator poses
+
+        -> 2xN numpy array of unicycle control inputs
+        """
+
+        #Check user input types
+        assert isinstance(dxi, np.ndarray), "In the si_to_uni_dyn function created by the create_si_to_uni_dynamics function, the single integrator velocity inputs (dxi) must be a numpy array. Recieved type %r." % type(dxi).__name__
+        assert isinstance(poses, np.ndarray), "In the si_to_uni_dyn function created by the create_si_to_uni_dynamics function, the current robot poses (poses) must be a numpy array. Recieved type %r." % type(poses).__name__
+
+        #Check user input ranges/sizes
+        assert dxi.shape[0] == 2, "In the si_to_uni_dyn function created by the create_si_to_uni_dynamics function, the dimension of the single integrator velocity inputs (dxi) must be 2 ([x_dot;y_dot]). Recieved dimension %r." % dxi.shape[0]
+        assert poses.shape[0] == 3, "In the si_to_uni_dyn function created by the create_si_to_uni_dynamics function, the dimension of the current pose of each robot must be 3 ([x;y;theta]). Recieved dimension %r." % poses.shape[0]
+        assert dxi.shape[1] == poses.shape[1], "In the si_to_uni_dyn function created by the create_si_to_uni_dynamics function, the number of single integrator velocity inputs must be equal to the number of current robot poses. Recieved a single integrator velocity input array of size %r x %r and current pose array of size %r x %r." % (dxi.shape[0], dxi.shape[1], poses.shape[0], poses.shape[1])
+
+        M,N = np.shape(dxi)
+
+        a = np.cos(poses[2, :])
+        b = np.sin(poses[2, :])
+
+        dxu = np.zeros((2, N))
+        dxu[0, :] = linear_velocity_gain*(a*dxi[0, :] + b*dxi[1, :])
+        dxu[1, :] = angular_velocity_limit*np.arctan2(-b*dxi[0, :] + a*dxi[1, :], dxu[0, :])/(np.pi/2)
+
+        return dxu
+
+    return si_to_uni_dyn
+
 def create_si_to_uni_mapping(projection_distance=0.05, angular_velocity_limit=np.pi):
 	"""Creates two functions for mapping from single integrator dynamics to
     unicycle dynamics and unicycle states to single integrator states.
@@ -185,7 +234,7 @@ def create_uni_to_si_dynamics(projection_distance=0.05):
 
 
 
-def create_single_integrator_barrier_certificate(barrier_gain=100, safety_radius=0.17, magnitude_limit=1):
+def create_single_integrator_barrier_certificate(barrier_gain=100, safety_radius=0.17, magnitude_limit=100):
 	"""Creates a barrier certificate for a single-integrator system.  This function
     returns another function for optimization reasons.
 
@@ -211,7 +260,7 @@ def create_single_integrator_barrier_certificate(barrier_gain=100, safety_radius
 	assert barrier_gain > 0, "In the function create_single_integrator_barrier_certificate, the barrier gain (barrier_gain) must be positive. Recieved %r." % barrier_gain
 	assert safety_radius >= 0.12, "In the function create_single_integrator_barrier_certificate, the safe distance between robots (safety_radius) must be greater than or equal to the diameter of the robot (0.12m) plus the distance to the look ahead point used in the diffeomorphism if that is being used. Recieved %r." % safety_radius
 	assert magnitude_limit > 0, "In the function create_single_integrator_barrier_certificate, the maximum linear velocity of the robot (magnitude_limit) must be positive. Recieved %r." % magnitude_limit
-	assert magnitude_limit <= 0.2, "In the function create_single_integrator_barrier_certificate, the maximum linear velocity of the robot (magnitude_limit) must be less than the max speed of the robot (0.2m/s). Recieved %r." % magnitude_limit
+	#assert magnitude_limit <= 0.2, "In the function create_single_integrator_barrier_certificate, the maximum linear velocity of the robot (magnitude_limit) must be less than the max speed of the robot (0.2m/s). Recieved %r." % magnitude_limit
 
 	def f(dxi, x):
 		# Check user input types
@@ -265,7 +314,7 @@ def create_single_integrator_barrier_certificate(barrier_gain=100, safety_radius
 
 	return f
 
-def create_unicycle_barrier_certificate(barrier_gain=100, safety_radius=0.12, projection_distance=0.05, magnitude_limit=1):
+def create_unicycle_barrier_certificate(barrier_gain=100, safety_radius=0.12, projection_distance=0.05, magnitude_limit=100):
     """ Creates a unicycle barrier cetifcate to avoid collisions. Uses the diffeomorphism mapping
     and single integrator implementation. For optimization purposes, this function returns
     another function.
@@ -288,7 +337,7 @@ def create_unicycle_barrier_certificate(barrier_gain=100, safety_radius=0.12, pr
     assert safety_radius >= 0.12, "In the function create_unicycle_barrier_certificate, the safe distance between robots (safety_radius) must be greater than or equal to the diameter of the robot (0.12m). Recieved %r." % safety_radius
     assert projection_distance > 0, "In the function create_unicycle_barrier_certificate, the projected point distance for the diffeomorphism between sinlge integrator and unicycle (projection_distance) must be positive. Recieved %r." % projection_distance
     assert magnitude_limit > 0, "In the function create_unicycle_barrier_certificate, the maximum linear velocity of the robot (magnitude_limit) must be positive. Recieved %r." % magnitude_limit
-    assert magnitude_limit <= 0.2, "In the function create_unicycle_barrier_certificate, the maximum linear velocity of the robot (magnitude_limit) must be less than the max speed of the robot (0.2m/s). Recieved %r." % magnitude_limit
+   # assert magnitude_limit <= 0.2, "In the function create_unicycle_barrier_certificate, the maximum linear velocity of the robot (magnitude_limit) must be less than the max speed of the robot (0.2m/s). Recieved %r." % magnitude_limit
 
 
     si_barrier_cert = create_single_integrator_barrier_certificate(barrier_gain=barrier_gain, safety_radius=safety_radius+projection_distance)
@@ -316,6 +365,47 @@ def create_unicycle_barrier_certificate(barrier_gain=100, safety_radius=0.12, pr
         dxi = si_barrier_cert(dxi, x_si)
         #Return safe unicycle command
         return si_to_uni_dyn(dxi, x)
+
+    return f
+
+def de_create_single_integrator_barrier_certificate(barrier_gain=10, safety_radius=0.17, magnitude_limit=0.2):
+    """Creates a barrier certificate for a single-integrator system.  This function
+    returns another function for optimization reasons.
+
+    barrier_gain: double (controls how quickly agents can approach each other.  lower = slower)
+    safety_radius: double (how far apart the agents will stay)
+    magnitude_limit: how fast the robot can move linearly.
+
+    -> function (the barrier certificate function)
+    """
+
+    def f(dxi, x, xo):
+
+        # Initialize some variables for computational savings
+        num_constraints = xo.shape[1]
+        A = np.zeros((num_constraints, 2))
+        b = np.zeros(num_constraints)
+        H = sparse(matrix(2 * np.identity(2)))
+
+        for i in range(num_constraints):
+            error = x[:,0] - xo[:, i]
+            h = (error[0] * error[0] + error[1] * error[1]) - np.power(safety_radius, 2)
+            if h <= 0:
+                print(h)
+            A[i, :] = -error.T
+            b[i] = 0.5 * barrier_gain * h
+        norms = np.linalg.norm(dxi, 2, 0)
+        idxs_to_normalize = (norms > magnitude_limit)
+        dxi[:, idxs_to_normalize] *= magnitude_limit / norms[idxs_to_normalize]
+
+        f = -2 * np.reshape(dxi, 2, order='F')
+        H = 0.5*(H+H.T)
+        try:
+            result = qp(H, matrix(f), matrix(A), matrix(b))['x']
+            return np.reshape(result, (2, -1), order='F')
+        except:
+            return np.array([[0],[0]])
+
 
     return f
 
@@ -448,17 +538,22 @@ rospy.sleep(2)
 twist = Twist()
 #rate = rospy.Rate(1)
 
-# Create unicycle position controller
-unicycle_position_controller  = create_clf_unicycle_pose_controller()
-# Create barrier certificates to avoid collision
-uni_barrier_cert = create_unicycle_barrier_certificate(safety_radius=0.3)
+single_integrator_position_controller = create_si_position_controller()
 
+si_barrier_cert = de_create_single_integrator_barrier_certificate(safety_radius = 0.4)
+
+_, uni_to_si_states = create_si_to_uni_mapping()
+
+si_to_uni_dyn = create_si_to_uni_dynamics()
+unicycle_position_controller = create_clf_unicycle_pose_controller()
+uni_barrier_cert = create_unicycle_barrier_certificate(safety_radius = 0.4)
 
 N = 4
 x = np.array([[0.0,0.5,-0.5,1.0],[0.0,-0.5,0.5,-1.0],[0.2,0.2,0.2,0.2]])
 dxi = np.array([[0,0,0,0],[0,0,0,0]])
-goal = np.array([[0.0,0.0,-1.0,1.0  ], [0.0,1.0,1.0,-1.0], [0.1,0.1,0.1,0.1]])
-
+initial_conditions = np.array([[0., 0., -1., 1.], [1., -1., 0., 0.], [-math.pi / 2, math.pi / 2, 0., math.pi]])
+uni_goals = np.array([[0., 0., 1., -1.], [-1., 1., 0., 0.], [math.pi / 2, -math.pi / 2, math.pi, 0.]])
+ready = np.array([0,0,0,0])
 def callback(data, args):
 
 	i = args
@@ -469,24 +564,55 @@ def callback(data, args):
 	x[2,i] = theta
 
 def control_callback(event):
-	print("x is",x)
-        dxu = unicycle_position_controller(x, goal)
-        dxu = uni_barrier_cert(dxu, x)
-        twist.linear.x = dxu[0,0]/5.
-        twist.linear.y = 0.0
-        twist.linear.z = 0.0
-        twist.angular.x = 0
-        twist.angular.y = 0
-        twist.angular.z = dxu[1,0]/5.
-        publisher.publish(twist)
+	N = 4
+
+	#p for your controlling robot's index
+	p = 0
+	if ready[0] != 1 or ready[1] != 1 or ready[2] != 1 or ready[3] != 1:
+		for i in range(N):
+			d = np.sqrt((initial_conditions[0][i] - x[0][i]) ** 2 + (initial_conditions[1][i] - x[1][i]) ** 2)
+			if (d < .075):
+				ready[i] = 1
+		dxu = unicycle_position_controller(x, initial_conditions)
+	        dxu = uni_barrier_cert(dxu, x)
+		twist.linear.x = dxu[0,p]/5.
+	    	twist.linear.y = 0.0
+	       	twist.linear.z = 0.0
+	    	twist.angular.x = 0
+	        twist.angular.y = 0
+	        twist.angular.z = dxu[1,p]/5.
+	        publisher.publish(twist)
+		
+	if ready[0] == 1 and ready[1] == 1 and ready[2] == 1 and ready[3] == 1:
+		print("x is",x)
+		x_si = uni_to_si_states(x)
+		dxi = single_integrator_position_controller(x_si, uni_goals[:2][:])
+		xx = np.reshape(x[:, p], (3, 1))
+		xi = np.reshape(x_si[:, p], (2, 1))
+		mask = np.arange(x_si.shape[1]) != p
+		xo = x_si[:, mask]  # for obstacles
+		dx = dxi[:, p]
+		dx = si_barrier_cert(dx, xi, xo)
+	
+		du = si_to_uni_dyn(dx, xx)
+		dxu = np.zeros((2, N))
+		dxu[0, p] = du[0, 0]
+		dxu[1, p] = du[1, 0]
+		twist.linear.x = dxu[0,p]/10.
+		twist.linear.y = 0.0
+		twist.linear.z = 0.0
+		twist.angular.x = 0
+		twist.angular.y = 0
+		twist.angular.z = dxu[1,p]/10.
+		publisher.publish(twist)
 
 def central():
 
 	
-	rospy.Subscriber('/vrpn_client_node/Hus111'  + '/pose', PoseStamped, callback, 0 ) 
-        rospy.Subscriber('/vrpn_client_node/Hus222'  + '/pose', PoseStamped, callback, 1 ) 
-        rospy.Subscriber('/vrpn_client_node/Hus333'  + '/pose', PoseStamped, callback, 2 ) 
-	rospy.Subscriber('/vrpn_client_node/Hus444'  + '/pose', PoseStamped, callback, 3 ) 
+	rospy.Subscriber('/vrpn_client_node/Hus117'  + '/pose', PoseStamped, callback, 0 ) 
+	rospy.Subscriber('/vrpn_client_node/Hus137'  + '/pose', PoseStamped, callback, 1 ) 
+	rospy.Subscriber('/vrpn_client_node/Hus138'  + '/pose', PoseStamped, callback, 2 ) 
+	rospy.Subscriber('/vrpn_client_node/Hus188'  + '/pose', PoseStamped, callback, 3 ) 
 
 	
 	timer = rospy.Timer(rospy.Duration(0.1), control_callback)
@@ -497,5 +623,5 @@ if __name__ == '__main__':
 
 	try:
 		central()
-        except rospy.ROSInterruptException:
+	except rospy.ROSInterruptException:
 		print(rospy.ROSInterruptException)
