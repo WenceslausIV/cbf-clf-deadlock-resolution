@@ -567,21 +567,21 @@ def control_callback(event):
 	N = 4
 
 	#p for your controlling robot's index
-	p = 0
+	p = 2
 	if ready[0] != 1 or ready[1] != 1 or ready[2] != 1 or ready[3] != 1:
 		for i in range(N):
 			d = np.sqrt((initial_conditions[0][i] - x[0][i]) ** 2 + (initial_conditions[1][i] - x[1][i]) ** 2)
 			if (d < .075):
 				ready[i] = 1
 		dxu = unicycle_position_controller(x, initial_conditions)
-	        dxu = uni_barrier_cert(dxu, x)
+		dxu = uni_barrier_cert(dxu, x)
 		twist.linear.x = dxu[0,p]/5.
-	    	twist.linear.y = 0.0
-	       	twist.linear.z = 0.0
-	    	twist.angular.x = 0
-	        twist.angular.y = 0
-	        twist.angular.z = dxu[1,p]/5.
-	        publisher.publish(twist)
+		twist.linear.y = 0.0
+		twist.linear.z = 0.0
+		twist.angular.x = 0
+		twist.angular.y = 0
+		twist.angular.z = dxu[1,p]/5.
+		publisher.publish(twist)
 		
 	if ready[0] == 1 and ready[1] == 1 and ready[2] == 1 and ready[3] == 1:
 		print("x is",x)
