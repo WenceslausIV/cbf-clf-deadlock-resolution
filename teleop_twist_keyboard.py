@@ -20,6 +20,9 @@ from cvxopt.blas import dot
 from cvxopt.solvers import qp, options
 from cvxopt import matrix, sparse
 
+import qpsolvers
+from qpsolvers import solve_qp
+from scipy import sparse as sparsed
 # Unused for now, will include later for speed.
 # import quadprog as solver2
 
@@ -532,6 +535,51 @@ def create_clf_unicycle_pose_controller(approach_angle_gain=1, desired_angle_gai
 
 	return pose_uni_clf_controller
 
+
+def de_create_single_integrator_CLF_CBF(barrier_gain=10, safety_radius=0.17, magnitude_limit=0.2):
+    """Creates a barrier certificate for a single-integrator system.  This function
+    returns another function for optimization reasons.
+
+    barrier_gain: double (controls how quickly agents can approach each other.  lower = slower)
+    safety_radius: double (how far apart the agents will stay)
+    magnitude_limit: how fast the robot can move linearly.
+
+    -> function (the barrier certificate function)
+    """
+
+    def f(x, xo, xgoal):
+        # Initialize some variables for computational savings
+        num_constraints = xo.shape[1] + 1
+        A = np.zeros((num_constraints, 3))
+        b = np.zeros(num_constraints)
+        # H = sparse(matrix(2 * np.identity(3)))
+
+        for i in range(num_constraints - 1):
+            error = x[:, 0] - xo[:, i]
+            h = (error[0] * error[0] + error[1] * error[1]) - np.power(safety_radius, 2)
+            if h <= 0:
+                print(h)
+            A[i, 0:2] = -error.T
+            b[i] = 0.5 * barrier_gain * h
+
+        A[num_constraints - 1, 0:2] = 2 * (x - xgoal).T
+        A[num_constraints - 1, 2] = -1
+        b[num_constraints - 1] = -(x - xgoal).T @ (x - xgoal)
+
+        # norms = np.linalg.norm(dxi, 2, 0)
+        # idxs_to_normalize = (norms > magnitude_limit)
+        # dxi[:, idxs_to_normalize] *= magnitude_limit / norms[idxs_to_normalize]
+
+        f = np.zeros((3, 1))
+        H = np.eye(3)
+        H = sparsed.csc_matrix(H)
+        A = sparsed.csc_matrix(A)
+        result = solve_qp(H, f, A, b, solver='osqp')
+
+        return result
+
+    return f
+
 rospy.init_node('teleop_twist_keyboard')
 publisher = rospy.Publisher('/cmd_vel', Twist, queue_size = 1)
 rospy.sleep(2)
@@ -540,8 +588,7 @@ twist = Twist()
 
 single_integrator_position_controller = create_si_position_controller()
 
-si_barrier_cert = de_create_single_integrator_barrier_certificate(safety_radius = 0.4)
-
+si_barrier_cert = de_create_single_integrator_CLF_CBF(safety_radius=0.4)
 _, uni_to_si_states = create_si_to_uni_mapping()
 
 si_to_uni_dyn = create_si_to_uni_dynamics()
@@ -567,7 +614,7 @@ def control_callback(event):
 	N = 4
 
 	#p for your controlling robot's index
-	p = 2
+	p = 3
 	if ready[0] != 1 or ready[1] != 1 or ready[2] != 1 or ready[3] != 1:
 		for i in range(N):
 			d = np.sqrt((initial_conditions[0][i] - x[0][i]) ** 2 + (initial_conditions[1][i] - x[1][i]) ** 2)
@@ -586,18 +633,22 @@ def control_callback(event):
 	if ready[0] == 1 and ready[1] == 1 and ready[2] == 1 and ready[3] == 1:
 		print("x is",x)
 		x_si = uni_to_si_states(x)
-		dxi = single_integrator_position_controller(x_si, uni_goals[:2][:])
+
+		# robot i
 		xx = np.reshape(x[:, p], (3, 1))
 		xi = np.reshape(x_si[:, p], (2, 1))
 		mask = np.arange(x_si.shape[1]) != p
 		xo = x_si[:, mask]  # for obstacles
-		dx = dxi[:, p]
-		dx = si_barrier_cert(dx, xi, xo)
-	
+		xgoal = goal_points[0:2, p].reshape((2,-1))
+		dx = si_barrier_cert(xi*10, xo*10, xgoal*10)
+		dx = np.array([[dx[0]],[dx[1]]])
+
 		du = si_to_uni_dyn(dx, xx)
-		dxu = np.zeros((2, N))
+
 		dxu[0, p] = du[0, 0]
 		dxu[1, p] = du[1, 0]
+
+
 		twist.linear.x = dxu[0,p]/10.
 		twist.linear.y = 0.0
 		twist.linear.z = 0.0
