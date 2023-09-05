@@ -593,14 +593,16 @@ _, uni_to_si_states = create_si_to_uni_mapping()
 
 si_to_uni_dyn = create_si_to_uni_dynamics()
 unicycle_position_controller = create_clf_unicycle_pose_controller()
-uni_barrier_cert = create_unicycle_barrier_certificate(safety_radius = 0.4)
+uni_barrier_cert = create_unicycle_barrier_certificate(safety_radius = 4)
 
 N = 4
 x = np.array([[0.0,0.5,-0.5,1.0],[0.0,-0.5,0.5,-1.0],[0.2,0.2,0.2,0.2]])
 dxi = np.array([[0,0,0,0],[0,0,0,0]])
 initial_conditions = np.array([[0., 0., -1., 1.], [1., -1., 0., 0.], [-math.pi / 2, math.pi / 2, 0., math.pi]])
-uni_goals = np.array([[0., 0., 1., -1.], [-1., 1., 0., 0.], [math.pi / 2, -math.pi / 2, math.pi, 0.]])
+goal_points = np.array([[0., 0., 1., -1.], [-1., 1., 0., 0.], [math.pi / 2, -math.pi / 2, math.pi, 0.]])
 ready = np.array([0,0,0,0])
+global dxu
+dxu = np.array([[0,0,0,0],[0,0,0,0]])
 def callback(data, args):
 
 	i = args
@@ -649,12 +651,12 @@ def control_callback(event):
 		dxu[1, p] = du[1, 0]
 
 
-		twist.linear.x = dxu[0,p]/10.
+		twist.linear.x = dxu[0,p]/8.
 		twist.linear.y = 0.0
 		twist.linear.z = 0.0
 		twist.angular.x = 0
 		twist.angular.y = 0
-		twist.angular.z = dxu[1,p]/10.
+		twist.angular.z = dxu[1,p]/8.
 		publisher.publish(twist)
 
 def central():
