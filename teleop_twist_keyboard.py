@@ -598,11 +598,10 @@ uni_barrier_cert = create_unicycle_barrier_certificate(safety_radius = 4)
 N = 4
 x = np.array([[0.0,0.5,-0.5,1.0],[0.0,-0.5,0.5,-1.0],[0.2,0.2,0.2,0.2]])
 dxi = np.array([[0,0,0,0],[0,0,0,0]])
+
 initial_conditions = np.array([[0., 0., -1., 1.], [1., -1., 0., 0.], [-math.pi / 2, math.pi / 2, 0., math.pi]])
 goal_points = np.array([[0., 0., 1., -1.], [-1., 1., 0., 0.], [math.pi / 2, -math.pi / 2, math.pi, 0.]])
 ready = np.array([0,0,0,0])
-global dxu
-dxu = np.array([[0,0,0,0],[0,0,0,0]])
 def callback(data, args):
 
 	i = args
@@ -616,7 +615,7 @@ def control_callback(event):
 	N = 4
 
 	#p for your controlling robot's index
-	p = 3
+	p = 2
 	if ready[0] != 1 or ready[1] != 1 or ready[2] != 1 or ready[3] != 1:
 		for i in range(N):
 			d = np.sqrt((initial_conditions[0][i] - x[0][i]) ** 2 + (initial_conditions[1][i] - x[1][i]) ** 2)
@@ -633,6 +632,8 @@ def control_callback(event):
 		publisher.publish(twist)
 		
 	if ready[0] == 1 and ready[1] == 1 and ready[2] == 1 and ready[3] == 1:
+		dxu = np.array([[0,0,0,0],[0,0,0,0]])
+
 		print("x is",x)
 		x_si = uni_to_si_states(x)
 
@@ -651,12 +652,12 @@ def control_callback(event):
 		dxu[1, p] = du[1, 0]
 
 
-		twist.linear.x = dxu[0,p]/8.
+		twist.linear.x = dxu[0,p]/16.
 		twist.linear.y = 0.0
 		twist.linear.z = 0.0
 		twist.angular.x = 0
 		twist.angular.y = 0
-		twist.angular.z = dxu[1,p]/8.
+		twist.angular.z = dxu[1,p]/16.
 		publisher.publish(twist)
 
 def central():
@@ -668,7 +669,7 @@ def central():
 	rospy.Subscriber('/vrpn_client_node/Hus188'  + '/pose', PoseStamped, callback, 3 ) 
 
 	
-	timer = rospy.Timer(rospy.Duration(0.1), control_callback)
+	timer = rospy.Timer(rospy.Duration(0.05), control_callback)
 	rospy.spin()
 
 
