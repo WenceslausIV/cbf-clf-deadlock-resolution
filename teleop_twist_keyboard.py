@@ -588,12 +588,12 @@ twist = Twist()
 
 single_integrator_position_controller = create_si_position_controller()
 
-si_barrier_cert = de_create_single_integrator_CLF_CBF(safety_radius=0.4)
+si_barrier_cert = de_create_single_integrator_CLF_CBF(safety_radius=4)
 _, uni_to_si_states = create_si_to_uni_mapping()
 
 si_to_uni_dyn = create_si_to_uni_dynamics()
 unicycle_position_controller = create_clf_unicycle_pose_controller()
-uni_barrier_cert = create_unicycle_barrier_certificate(safety_radius = 4)
+uni_barrier_cert = create_unicycle_barrier_certificate(safety_radius = 0.4)
 
 N = 4
 x = np.array([[0.0,0.5,-0.5,1.0],[0.0,-0.5,0.5,-1.0],[0.2,0.2,0.2,0.2]])
