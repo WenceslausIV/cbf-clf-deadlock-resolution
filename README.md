@@ -1,4 +1,4 @@
-# Husarion-ROSbot2Pro-cbf-clf-deadlock-resolution
+#cbf-clf-deadlock-resolution
 
 1. Replace the teleop_twist_keyboard.py at /opt/ros/noetic/lib/teleop_twist_keyboard/ for deadlock detection using cbf-clf for each robot
 
