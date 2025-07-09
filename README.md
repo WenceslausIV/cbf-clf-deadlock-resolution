@@ -1,3 +1,7 @@
+Yanze Zhang, Yiwei Lyu, Siwon Jo, Yupeng Yang, and Wenhao Luo, “Adaptive Deadlock Avoidance
+for Decentralized Multi-Agent Systems via CBF-inspired Risk Measurement,” in IEEE International
+Conference on Robotics and Automation (ICRA 2025)
+
 #cbf-clf-deadlock-resolution
 
 1. Replace the teleop_twist_keyboard.py at /opt/ros/noetic/lib/teleop_twist_keyboard/ for deadlock detection using cbf-clf for each robot
